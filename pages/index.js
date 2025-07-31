@@ -57,6 +57,24 @@ export default function Home() {
           {isArabic ? 'تحميل الورقة البيضاء' : 'Download Whitepaper'}
         </a>
       </div>
+
+      <div style={{ marginTop: '3rem' }}>
+        <h2>{isArabic ? 'مخطط التوزيع' : 'Tokenomics Chart'}</h2>
+        <img
+          src="/GCCoin_Tokenomics_Chart.png"
+          alt="Tokenomics Chart"
+          style={{ maxWidth: '100%', marginTop: '1rem' }}
+        />
+      </div>
+
+      <div style={{ marginTop: '3rem' }}>
+        <h2>{isArabic ? 'خارطة الطريق' : 'Roadmap Timeline'}</h2>
+        <img
+          src="/GCCoin_Roadmap_Timeline.png"
+          alt="Roadmap Timeline"
+          style={{ maxWidth: '100%', marginTop: '1rem' }}
+        />
+      </div>
     </main>
   );
 }

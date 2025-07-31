@@ -1,1 +1,1 @@
-# GCCoin Bilingual Website with Language Toggle
+# GCCoin Website Phase 4 with Tokenomics & Roadmap
