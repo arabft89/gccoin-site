@@ -1,1 +1,1 @@
-# GCCoin Website Phase 2
+# GCCoin Bilingual Website with Language Toggle
