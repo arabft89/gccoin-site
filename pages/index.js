@@ -15,5 +15,7 @@ export default function Home() {
       </Head>
 
       <header className="flex justify-between items-center py-4">
-        <h1 className="text-xl sm:text-2xl font-bold">
-          GCCoin <span className="text-blue-600">&mdash; The Digital Asset of the Gulf 
+  <h1 className="text-xl sm:text-2xl font-bold">
+    GCCoin <span className="text-blue-600">&ndash; The Digital Asset of the Gulf</span>
+  </h1>
+</header>
