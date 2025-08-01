@@ -18,4 +18,4 @@ export default function Home() {
   <h1 className="text-xl sm:text-2xl font-bold">
     GCCoin <span className="text-blue-600">&ndash; The Digital Asset of the Gulf</span>
   </h1>
-</header>
+</header> 
