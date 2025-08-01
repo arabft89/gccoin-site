@@ -1,4 +1,4 @@
-/ components/LanguageToggle.js (optional if we make it dynamic later)
+
 
 // pages/index.js
 
