@@ -5,14 +5,12 @@ export default function Home() {
   const isArabic = lang === 'ar';
 
   return (
-    <main
-      style={{
-        padding: '2rem',
-        fontFamily: 'sans-serif',
-        direction: isArabic ? 'rtl' : 'ltr',
-        textAlign: isArabic ? 'right' : 'left',
-      }}
-    >
+    <main style={{
+      padding: '2rem',
+      fontFamily: 'sans-serif',
+      direction: isArabic ? 'rtl' : 'ltr',
+      textAlign: isArabic ? 'right' : 'left',
+    }}>
       <button
         onClick={() => setLang(isArabic ? 'en' : 'ar')}
         style={{
@@ -59,21 +57,35 @@ export default function Home() {
       </div>
 
       <div style={{ marginTop: '3rem' }}>
-        <h2>{isArabic ? 'مخطط التوزيع' : 'Tokenomics Chart'}</h2>
-        <img
-          src="/GCCoin_Tokenomics_Chart.png"
-          alt="Tokenomics Chart"
-          style={{ maxWidth: '100%', marginTop: '1rem' }}
-        />
-      </div>
+        <h2>{isArabic ? 'تواصل معنا' : 'Contact Us'}</h2>
+        <form
+          action="https://formspree.io/f/xwpqqnov"
+          method="POST"
+          style={{ display: 'flex', flexDirection: 'column', maxWidth: '500px', marginTop: '1rem' }}
+        >
+          <label>{isArabic ? 'الاسم' : 'Name'}</label>
+          <input type="text" name="name" required style={{ marginBottom: '1rem', padding: '0.5rem' }} />
 
-      <div style={{ marginTop: '3rem' }}>
-        <h2>{isArabic ? 'خارطة الطريق' : 'Roadmap Timeline'}</h2>
-        <img
-          src="/GCCoin_Roadmap_Timeline.png"
-          alt="Roadmap Timeline"
-          style={{ maxWidth: '100%', marginTop: '1rem' }}
-        />
+          <label>{isArabic ? 'البريد الإلكتروني' : 'Email'}</label>
+          <input type="email" name="email" required style={{ marginBottom: '1rem', padding: '0.5rem' }} />
+
+          <label>{isArabic ? 'رسالتك' : 'Message'}</label>
+          <textarea name="message" required style={{ marginBottom: '1rem', padding: '0.5rem' }} />
+
+          <button
+            type="submit"
+            style={{
+              padding: '0.75rem 1.5rem',
+              backgroundColor: '#007b8a',
+              color: '#fff',
+              border: 'none',
+              borderRadius: '6px',
+              cursor: 'pointer'
+            }}
+          >
+            {isArabic ? 'إرسال' : 'Send'}
+          </button>
+        </form>
       </div>
     </main>
   );
