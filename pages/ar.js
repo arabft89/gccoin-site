@@ -12,6 +12,12 @@ export default function ArabicHome() {
         <h1 className="text-xl sm:text-2xl font-bold">
           جي سي كوين <span className="text-blue-600">— الأصل الرقمي للخليج 🌍</span>
         </h1>
+        <a
+          href="/"
+            className="text-sm bg-gray-100 px-3 py-1 rounded hover:bg-gray-200"
+              >
+                English
+         </a>
       </header>
 
       <main className="max-w-2xl mx-auto space-y-8 text-right">
