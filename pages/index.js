@@ -12,6 +12,12 @@ export default function Home() {
         <h1 className="text-xl sm:text-2xl font-bold">
           GCCoin <span className="text-blue-600">&mdash; The Digital Asset of the Gulf 🌍</span>
         </h1>
+        <a 
+          href="/ar"
+            className="text-sm bg-gray-100 px-3 py-1 rounded hover:bg-gray-200"
+              >
+              العربية
+        </a>
       </header>
 
       <main className="max-w-2xl mx-auto space-y-8">
