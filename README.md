@@ -1,1 +1,3 @@
-# GCCoin Website Phase 5 with Contact Form
+# GCCoin Landing Page
+
+A bilingual Next.js site for GCCoin. Deploy on Vercel.
