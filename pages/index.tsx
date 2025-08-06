@@ -1,3 +1,9 @@
+declare global {
+  interface Window {
+    ethereum? any;
+  }
+}
+
 import { useEffect, useState } from "react";
 import { ethers } from "ethers";
 
