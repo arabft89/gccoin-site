@@ -50,11 +50,11 @@ export default function Home() {
         ],
         provider
       );
-
+      
+      console.log("Checking balance of:", walletAddress);
       const [name, symbol, rawBalance, decimals, rawSupply] = await Promise.all([
         contract.name(),
         contract.symbol(),
-        console.log("Checking balance of:", walletAddress);
         contract.balanceOf(walletAddress),  // ✅ this must be walletAddress, not contract address
         contract.decimals(),
         contract.totalSupply(),
