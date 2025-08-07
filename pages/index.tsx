@@ -8,8 +8,10 @@ export default function Home() {
   const [tokenName, setTokenName] = useState("");
   const [tokenSymbol, setTokenSymbol] = useState("");
   const [balance, setBalance] = useState("");
-  const [loading, setLoading] = useState(false);
+  const [totalSupply, setTotalSupply] = useState("");
   const [formattedSupply, setFormattedSupply] = useState("");
+  const [loading, setLoading] = useState(false);
+  
 
   const connectWallet = async () => {
     if (typeof window.ethereum !== "undefined") {
