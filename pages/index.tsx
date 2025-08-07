@@ -51,7 +51,9 @@ export default function Home() {
         provider
       );
       
-      console.log("Checking balance of:", walletAddress);
+      console.log("🧪 Wallet Address (type):", typeof walletAddress);
+      console.log("🧪 Wallet Address (value):", walletAddress);
+      console.log("🧪 Is Valid Address:", ethers.utils.isAddress(walletAddress));
       const [name, symbol, rawBalance, decimals, rawSupply] = await Promise.all([
         contract.name(),
         contract.symbol(),
