@@ -34,6 +34,10 @@ export default function Home() {
     setLoading(true);
 
     try {
+      if(!ethers.utils.isAddress(walletAddress)){
+        console.error("Invalid wallet address:", walletAddress);
+        return;
+      }
       const provider = new ethers.providers.Web3Provider(window.ethereum);
       const contract = new ethers.Contract(
         CONTRACT_ADDRESS,
@@ -50,6 +54,7 @@ export default function Home() {
       const [name, symbol, rawBalance, decimals, rawSupply] = await Promise.all([
         contract.name(),
         contract.symbol(),
+        console.log("Checking balance of:", walletAddress);
         contract.balanceOf(walletAddress),  // ✅ this must be walletAddress, not contract address
         contract.decimals(),
         contract.totalSupply(),
