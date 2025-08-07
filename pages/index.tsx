@@ -79,20 +79,3 @@ export default function Home() {
 }
   
 
-  return (
-    <div className="flex flex-col items-center justify-center min-h-screen">
-      <h1 className="text-3xl font-bold mb-6">GCCoin dApp</h1>
-      {!account ? (
-        <button onClick={connectWallet} className="px-4 py-2 bg-blue-600 text-white rounded-md">
-          Connect Wallet
-        </button>
-      ) : (
-        <div className="text-center">
-          <p className="mb-2">Connected: <strong>{account}</strong></p>
-          <p className="mb-2">Token: <strong>{tokenName} ({tokenSymbol})</strong></p>
-          <p>Your Balance: <strong>{balance}</strong></p>
-        </div>
-      )}
-    </div>
-  );
-}
