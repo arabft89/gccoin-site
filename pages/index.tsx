@@ -36,11 +36,11 @@ export default function Home() {
     const contract = new ethers.Contract(
       CONTRACT_ADDRESS,
       [
-        "function name() view returns (string)",
-        "function symbol() view returns (string)",
-        "function balanceOf(address) view returns (uint256)",
-        "function decimals() view returns (uint8)",
-        "function totalSupply() view returns (uint256)",
+        "function name() external view returns (string memory)",
+        "function symbol() external view returns (string memory)",
+        "function balanceOf(address) external view returns (uint256)",
+        "function decimals() external view returns (uint8)",
+        "function totalSupply() external view returns (uint256)",
       ],
       provider
     );
