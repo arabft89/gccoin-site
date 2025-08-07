@@ -53,6 +53,10 @@ export default function Home() {
         contract.decimals(),
         contract.totalSupply(),
       ]);
+      console.log("Token Name:"), name);
+      console.log("Token Symbol:"), symbol);
+      console.log("Balance:"), formattedBalance);
+      console.log("Total Supply:"), formattedSupply);
 
       const formattedBalance = ethers.utils.formatUnits(rawBalance, decimals);
       const formattedSupply = ethers.utils.formatUnits(rawSupply, decimals);
