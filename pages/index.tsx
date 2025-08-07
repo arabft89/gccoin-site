@@ -8,7 +8,6 @@ export default function Home() {
   const [tokenName, setTokenName] = useState("");
   const [tokenSymbol, setTokenSymbol] = useState("");
   const [balance, setBalance] = useState("");
-  const [totalSupply, setTotalSupply] = useState("");
   const [loading, setLoading] = useState(false);
   const [formattedSupply, setFormattedSupply] = useState("");
 
@@ -83,7 +82,7 @@ export default function Home() {
           <p><strong>Connected:</strong> {walletAddress}</p>
           <p><strong>Token:</strong> {tokenName || "N/A"} ({tokenSymbol || "-"})</p>
           <p><strong>Your Balance:</strong> {balance} {tokenSymbol}</p>
-          <p><strong>Total Supply:</strong> {totalSupply} {tokenSymbol}</p>
+          <p><strong>Total Supply:</strong> {formattedSupply || "N/A"}</p>
           {loading && <p style={{ color: "gray" }}>Fetching token info...</p>}
         </div>
       )}
