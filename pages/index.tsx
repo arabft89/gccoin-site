@@ -1,4 +1,7 @@
 import { useEffect, useState } from "react";
+const [tokenName, setTokenName] = useState("");
+const [tokenSymbol, setTokenSymbol] = useState("");
+const [Balance, setBalance] = useState('');
 import { ethers } from "ethers";
 
 // Replace with your deployed contract address
