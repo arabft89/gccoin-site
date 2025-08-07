@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { ethers } from "ethers";
 
-const CONTRACT_ADDRESS = "0xED298062aeF2A0c1459E926f740dB7b5e265780";
+const CONTRACT_ADDRESS = "0xED298062aeF2A0c1459E926f740dB7b5e265780"; // ✅ your verified contract address
 
 export default function Home() {
   const [walletAddress, setWalletAddress] = useState("");
@@ -21,7 +21,7 @@ export default function Home() {
         console.log("✅ Wallet connected:", accounts[0]);
       } catch (err) {
         alert("Failed to connect wallet.");
-        console.error(err);
+        console.error("Connection error:", err);
       }
     } else {
       alert("Please install MetaMask");
@@ -30,7 +30,6 @@ export default function Home() {
 
   const fetchTokenInfo = async () => {
     if (!walletAddress) return;
-
     setLoading(true);
 
     try {
@@ -47,6 +46,8 @@ export default function Home() {
         provider
       );
 
+      console.log("🔍 Using walletAddress for balanceOf:", walletAddress);
+
       const [name, symbol, rawBalance, decimals, rawSupply] = await Promise.all([
         contract.name(),
         contract.symbol(),
@@ -58,17 +59,17 @@ export default function Home() {
       const formattedBalance = ethers.utils.formatUnits(rawBalance, decimals);
       const formattedSupply = ethers.utils.formatUnits(rawSupply, decimals);
 
-      console.log("Token Name:", name);
-      console.log("Token Symbol:", symbol);
-      console.log("Balance:", formattedBalance);
-      console.log("Total Supply:", formattedSupply);
+      console.log("📦 Token Name:", name);
+      console.log("🏷 Symbol:", symbol);
+      console.log("💰 Balance:", formattedBalance);
+      console.log("📦 Total Supply:", formattedSupply);
 
       setTokenName(name);
       setTokenSymbol(symbol);
       setBalance(formattedBalance);
       setTotalSupply(formattedSupply);
     } catch (err) {
-      console.error("❌ Error reading token info", err);
+      console.error("❌ Error reading token info:", err);
     }
 
     setLoading(false);
