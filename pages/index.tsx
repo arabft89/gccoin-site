@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { ethers } from "ethers";
 
-const CONTRACT_ADDRESS = "0xE6A81AFC3b9E0303F3ebDA957b61D3184077947";
+const CONTRACT_ADDRESS = "0xED298062aeF2A0c1459E926f740dB7b5e265780";
 
 export default function Home() {
   const [walletAddress, setWalletAddress] = useState("");
