@@ -77,10 +77,7 @@ export default function Home() {
     </div>
   );
 }
-    setTokenName(name);
-    setTokenSymbol(symbol);
-    setBalance(ethers.utils.formatUnits(rawBalance, 18));
-  };
+  
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen">
