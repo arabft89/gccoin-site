@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { ethers } from "ethers";
 
-// ✅ Your real contract address
 const CONTRACT_ADDRESS = "0xED298062aeF2A0c1459E926f740dB7b5e265780";
 
 export default function Home() {
@@ -18,44 +17,36 @@ export default function Home() {
         const accounts = await window.ethereum.request({
           method: "eth_requestAccounts",
         });
-
-        if (accounts && accounts.length > 0) {
-          setWalletAddress(accounts[0]);
-          console.log("✅ Wallet connected:", accounts[0]);
-        } else {
-          alert("No wallet found.");
-        }
+        setWalletAddress(accounts[0]);
+        console.log("✅ Wallet connected:", accounts[0]);
       } catch (err) {
         alert("Failed to connect wallet.");
         console.error(err);
       }
     } else {
-      alert("Please install MetaMask.");
+      alert("Please install MetaMask");
     }
   };
 
   const fetchTokenInfo = async () => {
-    if (!walletAddress || !ethers.utils.isAddress(walletAddress)) {
-      console.warn("⛔ Wallet address is not valid.");
-      return;
-    }
+    if (!walletAddress) return;
 
     setLoading(true);
 
-    const provider = new ethers.providers.Web3Provider(window.ethereum);
-    const contract = new ethers.Contract(
-      CONTRACT_ADDRESS,
-      [
-        "function name() view returns (string)",
-        "function symbol() view returns (string)",
-        "function balanceOf(address) view returns (uint256)",
-        "function decimals() view returns (uint8)",
-        "function totalSupply() view returns (uint256)",
-      ],
-      provider
-    );
-
     try {
+      const provider = new ethers.providers.Web3Provider(window.ethereum);
+      const contract = new ethers.Contract(
+        CONTRACT_ADDRESS,
+        [
+          "function name() view returns (string)",
+          "function symbol() view returns (string)",
+          "function balanceOf(address) view returns (uint256)",
+          "function decimals() view returns (uint8)",
+          "function totalSupply() view returns (uint256)",
+        ],
+        provider
+      );
+
       const [name, symbol, rawBalance, decimals, rawSupply] = await Promise.all([
         contract.name(),
         contract.symbol(),
@@ -67,12 +58,17 @@ export default function Home() {
       const formattedBalance = ethers.utils.formatUnits(rawBalance, decimals);
       const formattedSupply = ethers.utils.formatUnits(rawSupply, decimals);
 
+      console.log("Token Name:", name);
+      console.log("Token Symbol:", symbol);
+      console.log("Balance:", formattedBalance);
+      console.log("Total Supply:", formattedSupply);
+
       setTokenName(name);
       setTokenSymbol(symbol);
       setBalance(formattedBalance);
       setTotalSupply(formattedSupply);
     } catch (err) {
-      console.error("Error reading token info", err);
+      console.error("❌ Error reading token info", err);
     }
 
     setLoading(false);
