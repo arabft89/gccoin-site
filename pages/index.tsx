@@ -1,7 +1,4 @@
 import { useEffect, useState } from "react";
-const [tokenName, setTokenName] = useState("");
-const [tokenSymbol, setTokenSymbol] = useState("");
-const [Balance, setBalance] = useState('');
 import { ethers } from "ethers";
 
 // Replace with your deployed contract address
@@ -11,7 +8,7 @@ export default function Home() {
   const [walletAddress, setWalletAddress] = useState("");
   const [tokenName, setTokenName] = useState("");
   const [tokenSymbol, setTokenSymbol] = useState("");
-  const [balance, setBalance] = useState("");
+  const [balance, setBalance] = useState(""); // lowercase 'balance' 
 
   const connectWallet = async () => {
     if (typeof window.ethereum !== "undefined") {
