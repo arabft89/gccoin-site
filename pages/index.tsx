@@ -1,14 +1,15 @@
 import { useEffect, useState } from "react";
 import { ethers } from "ethers";
 
-// Replace with your deployed contract address
 const CONTRACT_ADDRESS = "0xE6A81AFC3b9E0303F3ebDA957b61D3184077947";
 
 export default function Home() {
   const [walletAddress, setWalletAddress] = useState("");
   const [tokenName, setTokenName] = useState("");
   const [tokenSymbol, setTokenSymbol] = useState("");
-  const [balance, setBalance] = useState(""); // lowercase 'balance' 
+  const [balance, setBalance] = useState("");
+  const [totalSupply, setTotalSupply] = useState("");
+  const [loading, setLoading] = useState(false);
 
   const connectWallet = async () => {
     if (typeof window.ethereum !== "undefined") {
@@ -19,7 +20,6 @@ export default function Home() {
         setWalletAddress(accounts[0]);
       } catch (err) {
         alert("Failed to connect wallet.");
-        console.error(err);
       }
     } else {
       alert("Please install MetaMask");
@@ -28,6 +28,7 @@ export default function Home() {
 
   const fetchTokenInfo = async () => {
     if (!walletAddress) return;
+    setLoading(true);
 
     const provider = new ethers.providers.Web3Provider(window.ethereum);
     const contract = new ethers.Contract(
@@ -36,24 +37,33 @@ export default function Home() {
         "function name() view returns (string)",
         "function symbol() view returns (string)",
         "function balanceOf(address) view returns (uint256)",
-        "function decimals() view returns (uint8)"
+        "function decimals() view returns (uint8)",
+        "function totalSupply() view returns (uint256)",
       ],
       provider
     );
 
     try {
-      const name = await contract.name();
-      const symbol = await contract.symbol();
-      const rawBalance = await contract.balanceOf(walletAddress);
-      const decimals = await contract.decimals();
-      const formatted = ethers.utils.formatUnits(rawBalance, decimals);
+      const [name, symbol, rawBalance, decimals, rawSupply] = await Promise.all([
+        contract.name(),
+        contract.symbol(),
+        contract.balanceOf(walletAddress),
+        contract.decimals(),
+        contract.totalSupply(),
+      ]);
+
+      const formattedBalance = ethers.utils.formatUnits(rawBalance, decimals);
+      const formattedSupply = ethers.utils.formatUnits(rawSupply, decimals);
 
       setTokenName(name);
       setTokenSymbol(symbol);
-      setBalance(formatted);
+      setBalance(formattedBalance);
+      setTotalSupply(formattedSupply);
     } catch (err) {
       console.error("Error reading token info", err);
     }
+
+    setLoading(false);
   };
 
   useEffect(() => {
@@ -70,12 +80,12 @@ export default function Home() {
       ) : (
         <div>
           <p><strong>Connected:</strong> {walletAddress}</p>
-          <p><strong>Token:</strong> {tokenName} ({tokenSymbol})</p>
-          <p><strong>Your Balance:</strong> {balance} {tokenSymbol}</p>
+          <p><strong>Token:</strong> {tokenName || "N/A"} ({tokenSymbol || "-"})</p>
+          <p><strong>Your Balance:</strong> {balance || "N/A"} {tokenSymbol}</p>
+          <p><strong>Total Supply:</strong> {totalSupply || "N/A"} {tokenSymbol}</p>
+          {loading && <p style={{ color: "gray" }}>Fetching token info...</p>}
         </div>
       )}
     </div>
   );
 }
-  
-
