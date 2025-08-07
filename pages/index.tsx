@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { ethers } from "ethers";
 
-const CONTRACT_ADDRESS = "0xED298062aeF2A0c1459E926f740dB7b5e265780"; // Update if redeployed
+const CONTRACT_ADDRESS = "0xED298062aeF2A0c1459E926f740dB7b5e265780";
 
 export default function Home() {
   const [walletAddress, setWalletAddress] = useState("");
@@ -28,11 +28,7 @@ export default function Home() {
   };
 
   const fetchTokenInfo = async () => {
-    if (!walletAddress || !ethers.utils.isAddress(walletAddress)) {
-      console.warn("Invalid or missing wallet address");
-      return;
-    }
-
+    if (!walletAddress) return;
     setLoading(true);
 
     const provider = new ethers.providers.Web3Provider(window.ethereum);
@@ -43,7 +39,7 @@ export default function Home() {
         "function symbol() view returns (string)",
         "function balanceOf(address) view returns (uint256)",
         "function decimals() view returns (uint8)",
-        "function totalSupply() view returns (uint256)",
+        "function totalSupply() view returns (uint256)"
       ],
       provider
     );
@@ -54,18 +50,21 @@ export default function Home() {
         contract.symbol(),
         contract.balanceOf(walletAddress),
         contract.decimals(),
-        contract.totalSupply(),
+        contract.totalSupply()
       ]);
 
       const formattedBalance = ethers.utils.formatUnits(rawBalance, decimals);
       const formattedSupply = ethers.utils.formatUnits(rawSupply, decimals);
 
+      console.log("Token Name:", name);
+      console.log("Token Symbol:", symbol);
+      console.log("Balance:", formattedBalance);
+      console.log("Total Supply:", formattedSupply);
+
       setTokenName(name);
       setTokenSymbol(symbol);
       setBalance(formattedBalance);
       setTotalSupply(formattedSupply);
-
-      console.log("Token Info:", { name, symbol, formattedBalance, formattedSupply });
     } catch (err) {
       console.error("Error reading token info", err);
     }
@@ -88,11 +87,9 @@ export default function Home() {
         <div>
           <p><strong>Connected:</strong> {walletAddress}</p>
           <p><strong>Token:</strong> {tokenName || "N/A"} ({tokenSymbol || "--"})</p>
-          <p><strong>Your Balance:</strong> {balance || "N/A"} {tokenSymbol || ""}</p>
+          <p><strong>Your Balance:</strong> {balance || "N/A"}</p>
           <p><strong>Total Supply:</strong> {totalSupply || "N/A"}</p>
-          {loading && (
-            <p style={{ color: "gray" }}>Fetching token info...</p>
-          )}
+          {loading && <p style={{ color: "gray" }}>Fetching token info...</p>}
         </div>
       )}
     </div>
