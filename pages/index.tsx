@@ -51,7 +51,7 @@ export default function Home() {
         contract.symbol(),
         contract.balanceOf(walletAddress),
         contract.decimals(),
-        contract.totalSupply();
+        contract.totalSupply(),
       ]);
       console.log("Token Name:"), name);
       console.log("Token Symbol:"), symbol);
