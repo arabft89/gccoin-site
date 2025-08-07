@@ -59,7 +59,7 @@ export default function Home() {
       console.log("Total Supply:", rawSupply);
 
       const formattedBalance = ethers.utils.formatUnits(rawBalance, decimals);
-      setFormattedSupply = ethers.utils.formatUnits(rawSupply, decimals);
+      setFormattedSupply(ethers.utils.formatUnits(rawSupply, decimals));
 
       setTokenName(name);
       setTokenSymbol(symbol);
