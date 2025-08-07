@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { ethers } from "ethers";
 
-// ✅ Replace this with your deployed contract address
+// ✅ Your real contract address
 const CONTRACT_ADDRESS = "0xED298062aeF2A0c1459E926f740dB7b5e265780";
 
 export default function Home() {
@@ -19,23 +19,24 @@ export default function Home() {
           method: "eth_requestAccounts",
         });
 
-        if (accounts.length > 0) {
+        if (accounts && accounts.length > 0) {
           setWalletAddress(accounts[0]);
           console.log("✅ Wallet connected:", accounts[0]);
         } else {
-          alert("⚠️ No wallet accounts found.");
+          alert("No wallet found.");
         }
       } catch (err) {
-        console.error("❌ Failed to connect wallet:", err);
+        alert("Failed to connect wallet.");
+        console.error(err);
       }
     } else {
-      alert("⚠️ Please install MetaMask.");
+      alert("Please install MetaMask.");
     }
   };
 
   const fetchTokenInfo = async () => {
     if (!walletAddress || !ethers.utils.isAddress(walletAddress)) {
-      console.error("❌ Invalid wallet address:", walletAddress);
+      console.warn("⛔ Wallet address is not valid.");
       return;
     }
 
@@ -49,7 +50,7 @@ export default function Home() {
         "function symbol() view returns (string)",
         "function balanceOf(address) view returns (uint256)",
         "function decimals() view returns (uint8)",
-        "function totalSupply() view returns (uint256)"
+        "function totalSupply() view returns (uint256)",
       ],
       provider
     );
@@ -70,14 +71,8 @@ export default function Home() {
       setTokenSymbol(symbol);
       setBalance(formattedBalance);
       setTotalSupply(formattedSupply);
-
-      // ✅ Debug logs
-      console.log("Token Name:", name);
-      console.log("Token Symbol:", symbol);
-      console.log("Balance:", formattedBalance);
-      console.log("Total Supply:", formattedSupply);
     } catch (err) {
-      console.error("❌ Error reading token info:", err);
+      console.error("Error reading token info", err);
     }
 
     setLoading(false);
@@ -100,7 +95,7 @@ export default function Home() {
           <p><strong>Token:</strong> {tokenName || "N/A"} ({tokenSymbol || "--"})</p>
           <p><strong>Your Balance:</strong> {balance || "N/A"}</p>
           <p><strong>Total Supply:</strong> {totalSupply || "N/A"}</p>
-          {loading && <p style={{ color: "gray" }}>⏳ Fetching token info...</p>}
+          {loading && <p style={{ color: "gray" }}>Fetching token info...</p>}
         </div>
       )}
     </div>
