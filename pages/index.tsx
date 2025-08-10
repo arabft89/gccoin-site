@@ -34,69 +34,67 @@ export default function Home() {
 
   // 2) Read token info
   const fetchTokenInfo = async () => {
-    setErr("");
-    if (!walletAddress) return;
+  if (!walletAddress) {
+    console.warn("No wallet connected yet.");
+    return;
+  }
 
-    // --- DEBUG GUARDRAILS ---
+  setLoading(true);
+
+  try {
+    // 1) Sanity checks
     console.log("— Runtime checks —");
     console.log("Using CONTRACT_ADDRESS:", CONTRACT_ADDRESS);
-    console.log("Wallet Address (type):", typeof walletAddress);
-    console.log("Wallet Address (value):", `"${walletAddress}"`);
+    console.log("Wallet Address (value):", walletAddress);
     console.log("Wallet Address (is valid):", ethers.utils.isAddress(walletAddress));
-    console.log(
-      "Is wallet the same as CONTRACT_ADDRESS?:",
-      walletAddress.toLowerCase() === CONTRACT_ADDRESS.toLowerCase()
-    );
-    // ------------------------
 
     if (!ethers.utils.isAddress(walletAddress)) {
-      setErr(`Invalid wallet address: ${walletAddress}`);
-      return;
+      throw new Error(`Wallet address is invalid: ${walletAddress}`);
     }
 
-    setLoading(true);
-    try {
-      const provider = new ethers.providers.Web3Provider((window as any).ethereum);
-      const contract = new ethers.Contract(
-        CONTRACT_ADDRESS,
-        [
-          "function name() view returns (string)",
-          "function symbol() view returns (string)",
-          "function balanceOf(address) view returns (uint256)",
-          "function decimals() view returns (uint8)",
-          "function totalSupply() view returns (uint256)",
-        ],
-        provider
-      );
+    // 2) Provider + minimal ABI
+    const provider = new ethers.providers.Web3Provider((window as any).ethereum);
+    const contract = new ethers.Contract(
+      CONTRACT_ADDRESS,
+      [
+        "function name() view returns (string)",
+        "function symbol() view returns (string)",
+        "function balanceOf(address) view returns (uint256)",
+        "function decimals() view returns (uint8)",
+        "function totalSupply() view returns (uint256)",
+      ],
+      provider
+    );
 
-      // ✅ IMPORTANT: pass the *wallet* address here
-      const [name, symbol, rawBalance, decimals, rawSupply] = await Promise.all([
-        contract.name(),
-        contract.symbol(),
-        contract.balanceOf(walletAddress),
-        contract.decimals(),
-        contract.totalSupply(),
-      ]);
+    // 3) IMPORTANT: use walletAddress here (NOT the contract address)
+    console.log("Calling balanceOf with:", walletAddress);
 
-      const formattedBalance = ethers.utils.formatUnits(rawBalance, decimals);
-      const formattedSupply = ethers.utils.formatUnits(rawSupply, decimals);
+    const [name, symbol, rawBalance, decimals, rawSupply] = await Promise.all([
+      contract.name(),
+      contract.symbol(),
+      contract.balanceOf(walletAddress), // ✅ correct
+      contract.decimals(),
+      contract.totalSupply(),
+    ]);
 
-      setTokenName(name);
-      setTokenSymbol(symbol);
-      setBalance(formattedBalance);
-      setTotalSupply(formattedSupply);
+    const formattedBalance = ethers.utils.formatUnits(rawBalance, decimals);
+    const formattedSupply  = ethers.utils.formatUnits(rawSupply, decimals);
 
-      console.log("✅ Token Name:", name);
-      console.log("✅ Token Symbol:", symbol);
-      console.log("✅ Balance:", formattedBalance);
-      console.log("✅ Total Supply:", formattedSupply);
-    } catch (e: any) {
-      console.error("❌ Error reading token info:", e);
-      setErr(e?.message ?? String(e));
-    } finally {
-      setLoading(false);
-    }
-  };
+    setTokenName(name);
+    setTokenSymbol(symbol);
+    setBalance(formattedBalance);
+    setTotalSupply(formattedSupply);
+
+    console.log("✓ Token Name:", name);
+    console.log("✓ Token Symbol:", symbol);
+    console.log("✓ Balance:", formattedBalance);
+    console.log("✓ Total Supply:", formattedSupply);
+  } catch (err: any) {
+    console.error("✗ Error reading token info:", err);
+  } finally {
+    setLoading(false);
+  }
+};
 
   // 3) Re-fetch when wallet changes
   useEffect(() => {
