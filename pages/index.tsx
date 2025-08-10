@@ -8,8 +8,8 @@ const SEPOLIA_CHAIN_ID = "0xaa36a7";
 
 // Prefer ENV var so we don’t hardcode in code.
 const ENV_ADDRESS = process.env.NEXT_PUBLIC_CONTRACT_ADDRESS?.trim();
-const FALLBACK_ADDRESS = "0xED298062aeF2A0c1459E926f740dB7b5e265780";
-
+const FALLBACK_ADDRESS = "0xED298062aeF2A0c1459E926f7f40dB7b5e265780";
+                          
 // ✅ Determine if env is present AND valid
 const hasValidEnv =
   !!ENV_ADDRESS && ethers.utils.isAddress(ENV_ADDRESS);
@@ -18,7 +18,7 @@ const hasValidEnv =
 const CONTRACT_ADDRESS = hasValidEnv ? ENV_ADDRESS! : FALLBACK_ADDRESS;
 
 // ✅ Only show the orange banner if env is missing/invalid
-const usingFallback = !hasValidEnv;
+const isusingFallback = CONTRACT_ADDRESS === FALLBACK_ADDRESS;
 
 // Minimal ERC-20 read-only ABI
 const ERC20_ABI = [
