@@ -34,26 +34,26 @@ export default function Home() {
 
   // 2) Read token info
   const fetchTokenInfo = async () => {
-  if (!walletAddress) {
-    console.warn("No wallet connected yet.");
+  // must have a connected wallet first
+  if (!walletAddress) return;
+
+  // sanity checks (these also show up in the console so we can see what's going on)
+  console.log("— Runtime checks —");
+  console.log("Using CONTRACT_ADDRESS:", CONTRACT_ADDRESS);
+  console.log("Wallet Address (type):", typeof walletAddress);
+  console.log('Wallet Address (value):', `"${walletAddress}"`);
+  console.log("Wallet Address (is valid):", ethers.utils.isAddress(walletAddress));
+
+  if (!ethers.utils.isAddress(walletAddress)) {
+    setError("Wallet address is not valid.");
     return;
   }
 
   setLoading(true);
+  setError("");
 
   try {
-    // 1) Sanity checks
-    console.log("— Runtime checks —");
-    console.log("Using CONTRACT_ADDRESS:", CONTRACT_ADDRESS);
-    console.log("Wallet Address (value):", walletAddress);
-    console.log("Wallet Address (is valid):", ethers.utils.isAddress(walletAddress));
-
-    if (!ethers.utils.isAddress(walletAddress)) {
-      throw new Error(`Wallet address is invalid: ${walletAddress}`);
-    }
-
-    // 2) Provider + minimal ABI
-    const provider = new ethers.providers.Web3Provider((window as any).ethereum);
+    const provider = new ethers.providers.Web3Provider(window.ethereum);
     const contract = new ethers.Contract(
       CONTRACT_ADDRESS,
       [
@@ -66,13 +66,13 @@ export default function Home() {
       provider
     );
 
-    // 3) IMPORTANT: use walletAddress here (NOT the contract address)
+    // ✅ IMPORTANT: pass the **walletAddress** (NOT the contract address)
     console.log("Calling balanceOf with:", walletAddress);
 
     const [name, symbol, rawBalance, decimals, rawSupply] = await Promise.all([
       contract.name(),
       contract.symbol(),
-      contract.balanceOf(walletAddress), // ✅ correct
+      contract.balanceOf(walletAddress),   // 👈 this MUST be walletAddress
       contract.decimals(),
       contract.totalSupply(),
     ]);
@@ -91,6 +91,7 @@ export default function Home() {
     console.log("✓ Total Supply:", formattedSupply);
   } catch (err: any) {
     console.error("✗ Error reading token info:", err);
+    setError(err?.message ?? "Failed to read token info.");
   } finally {
     setLoading(false);
   }
