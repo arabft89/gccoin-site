@@ -16,7 +16,7 @@ const SEPOLIA_CHAIN_ID = "0xaa36a7";
 // Prefer ENV var so we don’t hardcode in code. (No quotes in Vercel value!)
 const ENV_ADDRESS = process.env.NEXT_PUBLIC_CONTRACT_ADDRESS?.trim();
 // Keep your working address as a safe fallback so it still works locally.
-const FALLBACK_ADDRESS = "0xED298062aeF2A0c1459E926f740dB7b5e265780";
+const FALLBACK_ADDRESS = "0xED298062aeF2A0c1459E926f7f40dB7b5e265780"; 
 const CONTRACT_ADDRESS = ENV_ADDRESS && ethers.utils.isAddress(ENV_ADDRESS)
   ? ENV_ADDRESS
   : FALLBACK_ADDRESS;
