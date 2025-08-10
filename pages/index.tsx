@@ -157,11 +157,4 @@ export default function Home() {
   );
 }
 
-// TypeScript: let Window know about ethereum
-declare global {
-  interface Window {
-    ethereum?: {
-      request: (args: { method: string; params?: any[] }) => Promise<any>;
-    };
-  }
-}
+
