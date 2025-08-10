@@ -1,15 +1,21 @@
 import { useEffect, useState } from "react";
 import { ethers } from "ethers";
 
-/** ---------- Config ---------- **/
-const SEPOLIA_CHAIN_ID = "0xaa36a7"; // MetaMask hex format
+// --- Config ---
+const SEPOLIA_CHAIN_ID = "0xaa36a7"; // MetaMask hex
 
-// Prefer env var (set in Vercel as NEXT_PUBLIC_CONTRACT_ADDRESS)
+// Only use the env var (no fallback)
 const ENV_ADDRESS = process.env.NEXT_PUBLIC_CONTRACT_ADDRESS?.trim();
-const CONTRACT_ADDRESS =
-  ENV_ADDRESS && ethers.utils.isAddress(ENV_ADDRESS) ? ENV_ADDRESS : "";
 
-// Minimal ERC-20 read-only ABI
+if (!ENV_ADDRESS || !ethers.utils.isAddress(ENV_ADDRESS)) {
+  throw new Error(
+    "Missing or invalid NEXT_PUBLIC_CONTRACT_ADDRESS. Set it in Vercel > Settings > Environment Variables."
+  );
+}
+
+const CONTRACT_ADDRESS = ENV_ADDRESS;
+
+// Minimal ERC-20 ABI
 const ERC20_ABI = [
   "function name() view returns (string)",
   "function symbol() view returns (string)",
@@ -106,10 +112,34 @@ export default function Home() {
     }
   };
 
-  useEffect(() => {
-    if (walletAddress) fetchTokenInfo();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [walletAddress]);
+ useEffect(() => {
+  // Build-time logs (env var)
+  console.log("==== Runtime Contract Address Check ====");
+  console.log("ENV_ADDRESS (from Vercel):", ENV_ADDRESS);
+  console.log("Is ENV_ADDRESS valid?:", ethers.utils.isAddress(ENV_ADDRESS));
+
+  // Client/runtime logs (wallet + chain)
+  const logRuntime = async () => {
+    if (typeof window === "undefined") return;
+
+    // Show current chain
+    const chainIdHex = (await window.ethereum?.request?.({ method: "eth_chainId" })) as string | undefined;
+    console.log("Chain ID:", chainIdHex, "(expect 0xaa36a7 for Sepolia)");
+
+    // If you already store walletAddress in state, show the value & validity
+    if (walletAddress) {
+      console.log("Wallet Address (value):", walletAddress);
+      console.log("Wallet Address (is valid):", ethers.utils.isAddress(walletAddress));
+    }
+
+    // Make it crystal clear what contract address is used at runtime
+    console.log("Using CONTRACT_ADDRESS:", CONTRACT_ADDRESS);
+    console.log("========================================");
+  };
+
+  logRuntime();
+  // Re-run when wallet changes so you see validity as you connect
+}, [walletAddress]);
 
   return (
     <div style={{ textAlign: "center", marginTop: "5rem" }}>
