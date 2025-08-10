@@ -14,7 +14,7 @@
     "isolatedModules": true,
     "jsx": "preserve",
     "typeRoots": ["./node_modules/@types", "./types"],
-    "types": ["node", "ethereum-protocol"]
+    "types": ["node", "@metamask/providers"]
   },
   "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", "global.d.ts"],
   "exclude": ["node_modules"]
