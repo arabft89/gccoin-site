@@ -6,19 +6,26 @@ import { ethers } from "ethers";
 // Sepolia chain id in hex (MetaMask format)
 const SEPOLIA_CHAIN_ID = "0xaa36a7";
 
-// Prefer ENV var so we don’t hardcode in code.
+// Read contract address from Vercel env var
 const ENV_ADDRESS = process.env.NEXT_PUBLIC_CONTRACT_ADDRESS?.trim();
-const FALLBACK_ADDRESS = "0xED298062aeF2A0c1459E926f7f40dB7b5e265780";
-                          
-// ✅ Determine if env is present AND valid
-const hasValidEnv =
-  !!ENV_ADDRESS && ethers.utils.isAddress(ENV_ADDRESS);
 
-// Use env if valid, otherwise fallback
-const CONTRACT_ADDRESS = hasValidEnv ? ENV_ADDRESS! : FALLBACK_ADDRESS;
+// Local fallback address (hardcoded) for development
+const FALLBACK_ADDRESS = "0xED298062aeF2A0c1459E926f740dB7b5e265780";
 
-// ✅ Only show the orange banner if env is missing/invalid
-const isusingFallback = CONTRACT_ADDRESS === FALLBACK_ADDRESS;
+// Pick ENV address if valid, otherwise fallback
+const CONTRACT_ADDRESS =
+  ENV_ADDRESS && ethers.utils.isAddress(ENV_ADDRESS)
+    ? ENV_ADDRESS
+    : FALLBACK_ADDRESS;
+
+// Track whether we're using the fallback
+const isUsingFallback = CONTRACT_ADDRESS === FALLBACK_ADDRESS;
+
+// Debug logs
+console.log("ENV_ADDRESS (from Vercel):", ENV_ADDRESS);
+console.log("Is ENV_ADDRESS valid?:", ENV_ADDRESS ? ethers.utils.isAddress(ENV_ADDRESS) : false);
+console.log("Using CONTRACT_ADDRESS:", CONTRACT_ADDRESS);
+console.log("Is CONTRACT_ADDRESS same as FALLBACK?:", isUsingFallback);
 
 // Minimal ERC-20 read-only ABI
 const ERC20_ABI = [
