@@ -2,30 +2,12 @@ import { useEffect, useState } from "react";
 import { ethers } from "ethers";
 
 /** ---------- Config ---------- **/
+const SEPOLIA_CHAIN_ID = "0xaa36a7"; // MetaMask hex format
 
-// Sepolia chain id in hex (MetaMask format)
-const SEPOLIA_CHAIN_ID = "0xaa36a7";
-
-// Read contract address from Vercel env var
+// Prefer env var (set in Vercel as NEXT_PUBLIC_CONTRACT_ADDRESS)
 const ENV_ADDRESS = process.env.NEXT_PUBLIC_CONTRACT_ADDRESS?.trim();
-
-// Local fallback address (hardcoded) for development
-const FALLBACK_ADDRESS = "0xED298062aeF2A0c1459E926f740dB7b5e265780";
-
-// Pick ENV address if valid, otherwise fallback
 const CONTRACT_ADDRESS =
-  ENV_ADDRESS && ethers.utils.isAddress(ENV_ADDRESS)
-    ? ENV_ADDRESS
-    : FALLBACK_ADDRESS;
-
-// Track whether we're using the fallback
-const isUsingFallback = CONTRACT_ADDRESS === FALLBACK_ADDRESS;
-
-// Debug logs
-console.log("ENV_ADDRESS (from Vercel):", ENV_ADDRESS);
-console.log("Is ENV_ADDRESS valid?:", ENV_ADDRESS ? ethers.utils.isAddress(ENV_ADDRESS) : false);
-console.log("Using CONTRACT_ADDRESS:", CONTRACT_ADDRESS);
-console.log("Is CONTRACT_ADDRESS same as FALLBACK?:", isUsingFallback);
+  ENV_ADDRESS && ethers.utils.isAddress(ENV_ADDRESS) ? ENV_ADDRESS : "";
 
 // Minimal ERC-20 read-only ABI
 const ERC20_ABI = [
@@ -37,75 +19,74 @@ const ERC20_ABI = [
 ] as const;
 
 export default function Home() {
-  const [walletAddress, setWalletAddress] = useState<string>("");
-  const [tokenName, setTokenName] = useState<string>("");
-  const [tokenSymbol, setTokenSymbol] = useState<string>("");
-  const [balance, setBalance] = useState<string>("");
-  const [totalSupply, setTotalSupply] = useState<string>("");
-  const [loading, setLoading] = useState<boolean>(false);
+  const [walletAddress, setWalletAddress] = useState("");
+  const [tokenName, setTokenName] = useState("");
+  const [tokenSymbol, setTokenSymbol] = useState("");
+  const [balance, setBalance] = useState("");
+  const [totalSupply, setTotalSupply] = useState("");
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string>("");
 
-  // Runtime diagnostics in console
-  useEffect(() => {
-    console.log("---- Runtime Contract Address Check ----");
-    console.log("ENV_ADDRESS (from Vercel):", ENV_ADDRESS || "Not set");
-    console.log(
-      "Is ENV_ADDRESS valid?:",
-      ENV_ADDRESS ? ethers.utils.isAddress(ENV_ADDRESS) : "N/A"
-    );
-    console.log("Using CONTRACT_ADDRESS:", CONTRACT_ADDRESS);
-    console.log("Is CONTRACT_ADDRESS same as FALLBACK?:", isUsingFallback);
-    console.log("----------------------------------------");
-  }, []);
+  const log = (...args: any[]) => {
+    if (process.env.NODE_ENV !== "production") console.log(...args);
+  };
 
   const connectWallet = async () => {
-    if (typeof window === "undefined" || !(window as any).ethereum) {
-      alert("Please install MetaMask");
+    setError("");
+    if (typeof window === "undefined" || !window.ethereum) {
+      setError("Please install MetaMask.");
       return;
     }
-
     try {
-      const accounts: string[] = await (window as any).ethereum.request({
+      const accounts: string[] = await window.ethereum.request({
         method: "eth_requestAccounts",
       });
-
       setWalletAddress(accounts[0]);
-      console.log("✅ Wallet connected:", accounts[0]);
 
-      // Optional: sanity log chain
-      const chainId: string = await (window as any).ethereum.request({
+      const chainId: string = await window.ethereum.request({
         method: "eth_chainId",
       });
-      console.log("Chain ID:", chainId, "(expect", SEPOLIA_CHAIN_ID, "for Sepolia)");
-    } catch (err) {
-      console.error(err);
-      alert("Failed to connect wallet.");
+      if (chainId !== SEPOLIA_CHAIN_ID) {
+        setError("Please switch MetaMask to the Sepolia network.");
+      }
+
+      log("✅ Wallet connected:", accounts[0], "Chain:", chainId);
+    } catch (err: any) {
+      setError(err?.message || "Failed to connect wallet.");
     }
   };
 
   const fetchTokenInfo = async () => {
+    setError("");
     if (!walletAddress) return;
 
-    setError("");
+    if (!CONTRACT_ADDRESS) {
+      setError(
+        "Contract address is missing or invalid. Set NEXT_PUBLIC_CONTRACT_ADDRESS in Vercel."
+      );
+      return;
+    }
+
+    if (!ethers.utils.isAddress(walletAddress)) {
+      setError("Wallet address is not valid.");
+      return;
+    }
+
+    if (typeof window === "undefined" || !window.ethereum) {
+      setError("MetaMask not found.");
+      return;
+    }
+
     setLoading(true);
-
     try {
-      if (!ethers.utils.isAddress(walletAddress)) {
-        setError("Wallet address is not valid.");
-        setLoading(false);
-        return;
-      }
-
-      const provider = new ethers.providers.Web3Provider((window as any).ethereum);
+      const provider = new ethers.providers.Web3Provider(window.ethereum);
       const contract = new ethers.Contract(CONTRACT_ADDRESS, ERC20_ABI, provider);
 
-      // Get decimals first, then format everything else with it.
-      const decimals: number = await contract.decimals();
-
-      const [name, symbol, rawBalance, rawSupply] = await Promise.all([
+      const [name, symbol, rawBalance, decimals, rawSupply] = await Promise.all([
         contract.name(),
         contract.symbol(),
         contract.balanceOf(walletAddress),
+        contract.decimals(),
         contract.totalSupply(),
       ]);
 
@@ -117,41 +98,22 @@ export default function Home() {
       setBalance(formattedBalance);
       setTotalSupply(formattedSupply);
 
-      // Helpful logs
-      console.log("— Runtime checks —");
-      console.log("Using CONTRACT_ADDRESS:", CONTRACT_ADDRESS);
-      console.log("Wallet Address (value):", walletAddress);
-      console.log("Wallet Address (is valid):", ethers.utils.isAddress(walletAddress));
-      console.log("Token Name:", name);
-      console.log("Token Symbol:", symbol);
-      console.log("Balance:", formattedBalance);
-      console.log("Total Supply:", formattedSupply);
+      log("Token:", { name, symbol, formattedBalance, formattedSupply });
     } catch (err: any) {
-      console.error("❌ Error reading token info:", err);
-      setError(err?.message ?? String(err));
+      setError(err?.reason || err?.message || "Error reading token info.");
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    if (walletAddress) {
-      fetchTokenInfo();
-    }
+    if (walletAddress) fetchTokenInfo();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [walletAddress]);
 
   return (
     <div style={{ textAlign: "center", marginTop: "5rem" }}>
       <h1>GCCoin dApp</h1>
-
-      {/* On-page warning if we are using the hardcoded fallback */}
-      {isUsingFallback && (
-        <p style={{ color: "orange", fontWeight: "bold", marginBottom: "1rem" }}>
-          ⚠ Using fallback contract address. Check your Vercel env var{" "}
-          <code>NEXT_PUBLIC_CONTRACT_ADDRESS</code>.
-        </p>
-      )}
 
       {!walletAddress ? (
         <button onClick={connectWallet}>Connect Wallet</button>
@@ -178,7 +140,7 @@ export default function Home() {
             {loading ? "Loading..." : "Refresh"}
           </button>
 
-          {!!error && (
+          {error && (
             <p
               style={{
                 color: "crimson",
@@ -193,4 +155,13 @@ export default function Home() {
       )}
     </div>
   );
+}
+
+// TypeScript: let Window know about ethereum
+declare global {
+  interface Window {
+    ethereum?: {
+      request: (args: { method: string; params?: any[] }) => Promise<any>;
+    };
+  }
 }
