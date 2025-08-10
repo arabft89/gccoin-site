@@ -1,109 +1,141 @@
 import { useEffect, useState } from "react";
 import { ethers } from "ethers";
 
-// 🔴 Paste your address EXACTLY here (no spaces before/after)
-const RAW_CONTRACT_ADDRESS = "0xED298062aeF2A0c1459E926f740dB7b5e265780";
+// ✅ Your verified Sepolia ERC-20 contract (from Etherscan)
+const CONTRACT_ADDRESS = "0xED298062aeF2A0c1459E926f7f40dB7b5e265780";
+
+// Small helper to get a provider safely
+function getProvider() {
+  if (typeof window !== "undefined" && (window as any).ethereum) {
+    return new ethers.providers.Web3Provider((window as any).ethereum);
+  }
+  return null;
+}
 
 export default function Home() {
-  const [walletAddress, setWalletAddress] = useState("");
-  const [tokenName, setTokenName] = useState("");
-  const [tokenSymbol, setTokenSymbol] = useState("");
-  const [balance, setBalance] = useState("");
-  const [totalSupply, setTotalSupply] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
+  const [walletAddress, setWalletAddress] = useState<string>("");
+  const [tokenName, setTokenName] = useState<string>("");
+  const [tokenSymbol, setTokenSymbol] = useState<string>("");
+  const [balance, setBalance] = useState<string>("");
+  const [totalSupply, setTotalSupply] = useState<string>("");
+  const [loading, setLoading] = useState<boolean>(false);
+  const [error, setError] = useState<string>("");
 
+  // Connect wallet
   const connectWallet = async () => {
     setError("");
-    if (typeof (window as any).ethereum === "undefined") {
+    const provider = getProvider();
+    if (!provider) {
+      setError("MetaMask not detected. Please install MetaMask.");
       alert("Please install MetaMask");
       return;
     }
+
     try {
-      const accounts: string[] = await (window as any).ethereum.request({
+      const accounts: string[] = await (provider.provider as any).request({
         method: "eth_requestAccounts",
       });
-      setWalletAddress(accounts[0] ?? "");
-      console.log("✅ Wallet connected:", accounts[0]);
+      const addr = (accounts?.[0] || "").trim();
+      console.log("✅ Wallet connected:", addr);
+      setWalletAddress(addr);
     } catch (err) {
       console.error(err);
+      setError("Failed to connect wallet.");
       alert("Failed to connect wallet.");
     }
   };
 
+  // Fetch token info from the contract
   const fetchTokenInfo = async () => {
     setError("");
-    if (!walletAddress) return;
 
-    // 1) Validate wallet address
-    const cleanWallet = walletAddress.trim();
-    if (!ethers.utils.isAddress(cleanWallet)) {
-      setError("Wallet address is not valid.");
+    // Basic runtime checks
+    console.log("— Runtime checks —");
+    console.log("Using CONTRACT_ADDRESS:", CONTRACT_ADDRESS);
+    console.log("Wallet Address (value):", walletAddress);
+    console.log("Wallet Address (type):", typeof walletAddress);
+    console.log("Wallet Address (is valid):", ethers.utils.isAddress(walletAddress));
+    console.log(
+      "Is wallet same as CONTRACT_ADDRESS?:",
+      walletAddress?.toLowerCase?.() === CONTRACT_ADDRESS.toLowerCase()
+    );
+
+    // Stop early if wallet isn’t ready
+    if (!walletAddress) {
+      setError("Connect your wallet first.");
+      return;
+    }
+    if (!ethers.utils.isAddress(walletAddress)) {
+      setError(`Wallet address is not valid: ${walletAddress}`);
       return;
     }
 
-    // 2) Validate & normalize contract address (this is where the build/runtime error came from)
-    const raw = RAW_CONTRACT_ADDRESS.trim(); // remove hidden whitespace
-    if (!ethers.utils.isAddress(raw)) {
-      setError(
-        `Configured CONTRACT_ADDRESS is not a valid address: "${RAW_CONTRACT_ADDRESS}"`
-      );
+    // Validate the contract address once too
+    if (!ethers.utils.isAddress(CONTRACT_ADDRESS)) {
+      setError(`Configured CONTRACT_ADDRESS is not a valid address:\n"${CONTRACT_ADDRESS}"`);
       return;
     }
-    // Normalize checksum to avoid checksum-related rejections
-    const contractAddress = ethers.utils.getAddress(raw);
+
+    const provider = getProvider();
+    if (!provider) {
+      setError("MetaMask not detected. Please install MetaMask.");
+      return;
+    }
 
     setLoading(true);
     try {
-      const provider = new ethers.providers.Web3Provider(
-        (window as any).ethereum
+      const contract = new ethers.Contract(
+        CONTRACT_ADDRESS,
+        [
+          "function name() view returns (string)",
+          "function symbol() view returns (string)",
+          "function balanceOf(address) view returns (uint256)",
+          "function decimals() view returns (uint8)",
+          "function totalSupply() view returns (uint256)",
+        ],
+        provider
       );
 
-      const abi = [
-        "function name() view returns (string)",
-        "function symbol() view returns (string)",
-        "function balanceOf(address) view returns (uint256)",
-        "function decimals() view returns (uint8)",
-        "function totalSupply() view returns (uint256)",
-      ];
+      // Read in sequence (clearer logs & errors)
+      const name: string = await contract.name();
+      const symbol: string = await contract.symbol();
 
-      const contract = new ethers.Contract(contractAddress, abi, provider);
+      console.log("Calling balanceOf with:", walletAddress);
+      const rawBalance: ethers.BigNumber = await contract.balanceOf(walletAddress);
 
-      console.log("— Runtime checks —");
-      console.log("Using CONTRACT_ADDRESS:", contractAddress);
-      console.log("Wallet Address (value):", cleanWallet);
-      console.log("Wallet Address (is valid):", ethers.utils.isAddress(cleanWallet));
-
-      const [name, symbol, rawBalance, decimals, rawSupply] = await Promise.all([
-        contract.name(),
-        contract.symbol(),
-        contract.balanceOf(cleanWallet), // ✅ this must be the wallet address
-        contract.decimals(),
-        contract.totalSupply(),
-      ]);
+      const decimals: number = await contract.decimals();
+      const rawTotalSupply: ethers.BigNumber = await contract.totalSupply();
 
       const formattedBalance = ethers.utils.formatUnits(rawBalance, decimals);
-      const formattedSupply = ethers.utils.formatUnits(rawSupply, decimals);
+      const formattedSupply = ethers.utils.formatUnits(rawTotalSupply, decimals);
 
       setTokenName(name);
       setTokenSymbol(symbol);
       setBalance(formattedBalance);
       setTotalSupply(formattedSupply);
+
+      console.log("✅ Token Name:", name);
+      console.log("✅ Token Symbol:", symbol);
+      console.log("✅ Balance:", formattedBalance);
+      console.log("✅ Total Supply:", formattedSupply);
     } catch (err: any) {
       console.error("❌ Error reading token info:", err);
-      // Surface ethers invalid-address error message to the UI
-      if (err?.code === "INVALID_ARGUMENT") {
-        setError(`${err.message}`);
-      } else {
-        setError("Failed to read token info. Check console for details.");
-      }
+      setError(
+        err?.reason ||
+          err?.message ||
+          "Failed to read token info. Check the console for details."
+      );
     } finally {
       setLoading(false);
     }
   };
 
+  // Auto-fetch when wallet changes
   useEffect(() => {
-    if (walletAddress) fetchTokenInfo();
+    if (walletAddress) {
+      fetchTokenInfo();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [walletAddress]);
 
   return (
@@ -128,16 +160,14 @@ export default function Home() {
           </p>
 
           <button onClick={fetchTokenInfo} disabled={loading} style={{ marginTop: "1rem" }}>
-            {loading ? "Refreshing..." : "Refresh"}
+            {loading ? "Loading..." : "Refresh"}
           </button>
 
-          {error && (
-            <p style={{ color: "crimson", maxWidth: 600, margin: "1rem auto" }}>
+          {!!error && (
+            <p style={{ color: "crimson", whiteSpace: "pre-wrap", marginTop: "1rem" }}>
               <strong>Error:</strong> {error}
             </p>
           )}
         </div>
       )}
     </div>
-  );
-}
