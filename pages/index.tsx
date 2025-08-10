@@ -1,175 +1,196 @@
+// pages/index.tsx
 import { useEffect, useState } from "react";
 import { ethers } from "ethers";
 
-// ✅ Your verified Sepolia ERC-20 contract (from Etherscan)
-const CONTRACT_ADDRESS = "0xED298062aeF2A0c1459E926f7f40dB7b5e265780";
-
-// Small helper to get a provider safely
-function getProvider() {
-  if (typeof window !== "undefined" && (window as any).ethereum) {
-    return new ethers.providers.Web3Provider((window as any).ethereum);
+/** ---- Types for window.ethereum (quiet TypeScript) ---- */
+declare global {
+  interface Window {
+    ethereum?: any;
   }
-  return null;
 }
 
-export default function Home() {
-  const [walletAddress, setWalletAddress] = useState<string>("");
-  const [tokenName, setTokenName] = useState<string>("");
-  const [tokenSymbol, setTokenSymbol] = useState<string>("");
-  const [balance, setBalance] = useState<string>("");
-  const [totalSupply, setTotalSupply] = useState<string>("");
-  const [loading, setLoading] = useState<boolean>(false);
-  const [error, setError] = useState<string>("");
+/** ---- Config ---- */
+// Sepolia chain id in hex (MetaMask format)
+const SEPOLIA_CHAIN_ID = "0xaa36a7";
 
-  // Connect wallet
+// Prefer ENV var so we don’t hardcode in code. (No quotes in Vercel value!)
+const ENV_ADDRESS = process.env.NEXT_PUBLIC_CONTRACT_ADDRESS?.trim();
+// Keep your working address as a safe fallback so it still works locally.
+const FALLBACK_ADDRESS = "0xED298062aeF2A0c1459E926f740dB7b5e265780";
+const CONTRACT_ADDRESS = ENV_ADDRESS && ethers.utils.isAddress(ENV_ADDRESS)
+  ? ENV_ADDRESS
+  : FALLBACK_ADDRESS;
+
+// Minimal ERC-20 read-only ABI
+const ERC20_ABI = [
+  "function name() view returns (string)",
+  "function symbol() view returns (string)",
+  "function decimals() view returns (uint8)",
+  "function totalSupply() view returns (uint256)",
+  "function balanceOf(address) view returns (uint256)",
+] as const;
+
+export default function Home() {
+  const [walletAddress, setWalletAddress] = useState("");
+  const [tokenName, setTokenName] = useState("");
+  const [tokenSymbol, setTokenSymbol] = useState("");
+  const [balance, setBalance] = useState("");
+  const [totalSupply, setTotalSupply] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setErr] = useState("");
+
+  /** Connect wallet + (politely) ask user to switch to Sepolia if needed */
   const connectWallet = async () => {
-    setError("");
-    const provider = getProvider();
-    if (!provider) {
-      setError("MetaMask not detected. Please install MetaMask.");
-      alert("Please install MetaMask");
+    setErr("");
+    if (!window.ethereum) {
+      setErr("MetaMask not detected. Please install MetaMask and refresh.");
       return;
     }
-
     try {
-      const accounts: string[] = await (provider.provider as any).request({
+      // Request accounts
+      const accounts: string[] = await window.ethereum.request({
         method: "eth_requestAccounts",
       });
-      const addr = (accounts?.[0] || "").trim();
-      console.log("✅ Wallet connected:", addr);
+      const addr = accounts[0];
       setWalletAddress(addr);
-    } catch (err) {
-      console.error(err);
-      setError("Failed to connect wallet.");
-      alert("Failed to connect wallet.");
+
+      // Make sure we’re on Sepolia
+      const chainId: string = await window.ethereum.request({
+        method: "eth_chainId",
+      });
+      if (chainId !== SEPOLIA_CHAIN_ID) {
+        try {
+          await window.ethereum.request({
+            method: "wallet_switchEthereumChain",
+            params: [{ chainId: SEPOLIA_CHAIN_ID }],
+          });
+        } catch (switchErr: any) {
+          // If chain is not added, try to add it
+          if (switchErr?.code === 4902) {
+            try {
+              await window.ethereum.request({
+                method: "wallet_addEthereumChain",
+                params: [
+                  {
+                    chainId: SEPOLIA_CHAIN_ID,
+                    chainName: "Sepolia",
+                    rpcUrls: ["https://rpc.sepolia.org"],
+                    nativeCurrency: { name: "SepoliaETH", symbol: "ETH", decimals: 18 },
+                    blockExplorerUrls: ["https://sepolia.etherscan.io"],
+                  },
+                ],
+              });
+            } catch {
+              setErr("Please switch your MetaMask network to Sepolia and try again.");
+            }
+          } else {
+            setErr("Please switch your MetaMask network to Sepolia and try again.");
+          }
+        }
+      }
+    } catch (e: any) {
+      setErr(e?.message || "Failed to connect wallet.");
     }
   };
 
-  // Fetch token info from the contract
+  /** Fetch token info from chain */
   const fetchTokenInfo = async () => {
-    setError("");
+    setErr("");
 
-    // Basic runtime checks
-    console.log("— Runtime checks —");
-    console.log("Using CONTRACT_ADDRESS:", CONTRACT_ADDRESS);
-    console.log("Wallet Address (value):", walletAddress);
-    console.log("Wallet Address (type):", typeof walletAddress);
-    console.log("Wallet Address (is valid):", ethers.utils.isAddress(walletAddress));
-    console.log(
-      "Is wallet same as CONTRACT_ADDRESS?:",
-      walletAddress?.toLowerCase?.() === CONTRACT_ADDRESS.toLowerCase()
-    );
+    if (!walletAddress) return;
 
-    // Stop early if wallet isn’t ready
-    if (!walletAddress) {
-      setError("Connect your wallet first.");
-      return;
-    }
     if (!ethers.utils.isAddress(walletAddress)) {
-      setError(`Wallet address is not valid: ${walletAddress}`);
+      setErr("Wallet address is not valid.");
       return;
     }
-
-    // Validate the contract address once too
     if (!ethers.utils.isAddress(CONTRACT_ADDRESS)) {
-      setError(`Configured CONTRACT_ADDRESS is not a valid address:\n"${CONTRACT_ADDRESS}"`);
+      setErr(`Configured CONTRACT_ADDRESS is not a valid address: ${CONTRACT_ADDRESS}`);
       return;
     }
-
-    const provider = getProvider();
-    if (!provider) {
-      setError("MetaMask not detected. Please install MetaMask.");
+    if (!window.ethereum) {
+      setErr("MetaMask not detected.");
       return;
     }
 
     setLoading(true);
     try {
-      const contract = new ethers.Contract(
-        CONTRACT_ADDRESS,
-        [
-          "function name() view returns (string)",
-          "function symbol() view returns (string)",
-          "function balanceOf(address) view returns (uint256)",
-          "function decimals() view returns (uint8)",
-          "function totalSupply() view returns (uint256)",
-        ],
-        provider
-      );
+      const provider = new ethers.providers.Web3Provider(window.ethereum);
+      const contract = new ethers.Contract(CONTRACT_ADDRESS, ERC20_ABI, provider);
 
-      // Read in sequence (clearer logs & errors)
-      const name: string = await contract.name();
-      const symbol: string = await contract.symbol();
+      // Parallel calls
+      const [name, symbol, decimals, rawTotal, rawBal] = await Promise.all([
+        contract.name(),
+        contract.symbol(),
+        contract.decimals(),
+        contract.totalSupply(),
+        contract.balanceOf(walletAddress),
+      ]);
 
-      console.log("Calling balanceOf with:", walletAddress);
-      const rawBalance: ethers.BigNumber = await contract.balanceOf(walletAddress);
-
-      const decimals: number = await contract.decimals();
-      const rawTotalSupply: ethers.BigNumber = await contract.totalSupply();
-
-      const formattedBalance = ethers.utils.formatUnits(rawBalance, decimals);
-      const formattedSupply = ethers.utils.formatUnits(rawTotalSupply, decimals);
+      const formattedBalance = ethers.utils.formatUnits(rawBal, decimals);
+      const formattedSupply = ethers.utils.formatUnits(rawTotal, decimals);
 
       setTokenName(name);
       setTokenSymbol(symbol);
       setBalance(formattedBalance);
       setTotalSupply(formattedSupply);
-
-      console.log("✅ Token Name:", name);
-      console.log("✅ Token Symbol:", symbol);
-      console.log("✅ Balance:", formattedBalance);
-      console.log("✅ Total Supply:", formattedSupply);
-    } catch (err: any) {
-      console.error("❌ Error reading token info:", err);
-      setError(
-        err?.reason ||
-          err?.message ||
-          "Failed to read token info. Check the console for details."
-      );
+    } catch (e: any) {
+      setErr(e?.reason || e?.message || "Error reading token info.");
     } finally {
       setLoading(false);
     }
   };
 
-  // Auto-fetch when wallet changes
+  // Auto-fetch after connecting
   useEffect(() => {
-    if (walletAddress) {
-      fetchTokenInfo();
-    }
+    if (walletAddress) fetchTokenInfo();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [walletAddress]);
 
   return (
-    <div style={{ textAlign: "center", marginTop: "5rem" }}>
+    <div style={{ textAlign: "center", marginTop: "5rem", fontFamily: "system-ui, sans-serif" }}>
       <h1>GCCoin dApp</h1>
 
       {!walletAddress ? (
-        <button onClick={connectWallet}>Connect Wallet</button>
+        <button onClick={connectWallet} style={{ padding: "0.6rem 1rem", borderRadius: 8 }}>
+          Connect Wallet
+        </button>
       ) : (
         <div>
-          <p>
-            <strong>Connected:</strong> {walletAddress}
-          </p>
-          <p>
-            <strong>Token:</strong> {tokenName || "N/A"} ({tokenSymbol || "--"})
-          </p>
-          <p>
-            <strong>Your Balance:</strong> {balance || "N/A"}
-          </p>
-          <p>
-            <strong>Total Supply:</strong> {totalSupply || "N/A"}
-          </p>
+          <p><strong>Connected:</strong> {walletAddress}</p>
+          <p><strong>Token:</strong> {tokenName || "N/A"} ({tokenSymbol || "--"})</p>
+          <p><strong>Your Balance:</strong> {balance || "N/A"}</p>
+          <p><strong>Total Supply:</strong> {totalSupply || "N/A"}</p>
 
-          <button onClick={fetchTokenInfo} disabled={loading} style={{ marginTop: "1rem" }}>
+          <button
+            onClick={fetchTokenInfo}
+            disabled={loading}
+            style={{
+              marginTop: "0.75rem",
+              padding: "0.6rem 1rem",
+              borderRadius: 8,
+              opacity: loading ? 0.7 : 1,
+              cursor: loading ? "not-allowed" : "pointer",
+            }}
+          >
             {loading ? "Loading..." : "Refresh"}
           </button>
 
           {!!error && (
-            <p style={{ color: "crimson", whiteSpace: "pre-wrap", marginTop: "1rem" }}>
+            <p
+              style={{
+                color: "crimson",
+                whiteSpace: "pre-wrap",
+                marginTop: "1rem",
+                maxWidth: 640,
+                marginLeft: "auto",
+                marginRight: "auto",
+              }}
+            >
               <strong>Error:</strong> {error}
             </p>
           )}
         </div>
       )}
     </div>
-);
+  );
 }
