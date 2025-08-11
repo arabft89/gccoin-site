@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { ethers } from "ethers";
-import { log, warn, error } from "../lib/logger";
+import { log, warn, error } from "@lib/logger";
 
 // Sepolia chain id in hex (MetaMask format)
 const SEPOLIA_CHAIN_ID = "0xaa36a7";
