@@ -1,33 +1,34 @@
 import { useEffect, useState } from "react";
 import { ethers } from "ethers";
-import { log, warn, error } from "@lib/logger";
+
+// --- Dev-only logger ---
+const __DEV__ = process.env.NODE_ENV === "development";
+const dbg = (...a: any[]) => { if (__DEV__) console.log(...a); };
+
+const log = {
+  section: (title: string) => dbg(`===== [${title}] =====`),
+  line: () => dbg("=========================================="),
+  ok: (label: string, v?: any) =>
+    dbg(`%c${label}`, "color:green;font-weight:600;", v),
+  warn: (label: string, v?: any) =>
+    dbg(`%c${label}`, "color:orange;font-weight:600;", v),
+  err: (label: string, v?: any) =>
+    dbg(`%c${label}`, "color:crimson;font-weight:700;", v),
+};
 
 // Sepolia chain id in hex (MetaMask format)
 const SEPOLIA_CHAIN_ID = "0xaa36a7";
 
-// Get from environment variables (always as a string)
+// Get from environment variables (always string)
 const ENV_ADDRESS: string = (process.env.NEXT_PUBLIC_CONTRACT_ADDRESS || "").trim();
-
-// Fallback contract address
 const FALLBACK_ADDRESS = "0xED298062aeF2A0c1459E926f7f40dB7b5e265780";
 
-// Decide which contract address to use
 const CONTRACT_ADDRESS =
   ENV_ADDRESS && ethers.utils.isAddress(ENV_ADDRESS)
     ? ENV_ADDRESS
     : FALLBACK_ADDRESS;
 
-// For debugging — check if fallback is being used
 const isUsingFallback = CONTRACT_ADDRESS === FALLBACK_ADDRESS;
-
-// Optional debug logging
-console.log("==== Contract Address Debug ====");
-console.log("ENV_ADDRESS (from Vercel):", ENV_ADDRESS);
-console.log("Is ENV_ADDRESS valid?:", ethers.utils.isAddress(ENV_ADDRESS));
-console.log("FALLBACK_ADDRESS:", FALLBACK_ADDRESS);
-console.log("CONTRACT_ADDRESS (using):", CONTRACT_ADDRESS);
-console.log("Using fallback?:", isUsingFallback);
-console.log("================================");
 
 const ERC20_ABI = [
   "function name() view returns (string)",
@@ -46,19 +47,18 @@ export default function Home() {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    // Debug contract address
-    log("==== Contract Address Debug ====");
-    log("ENV_ADDRESS (from Vercel):", ENV_ADDRESS);
-    log("Is ENV_ADDRESS valid?:", ethers.utils.isAddress(ENV_ADDRESS));
-    log("FALLBACK_ADDRESS:", FALLBACK_ADDRESS);
-    log("CONTRACT_ADDRESS (using):", CONTRACT_ADDRESS);
-    log("Using fallback?:", isUsingFallback);
-    log("===============================");
+    log.section("ENV Check");
+    log.ok("ENV_ADDRESS:", ENV_ADDRESS);
+    log.ok("Is ENV_ADDRESS valid?:", ethers.utils.isAddress(ENV_ADDRESS));
+    log.ok("FALLBACK_ADDRESS:", FALLBACK_ADDRESS);
+    log.ok("CONTRACT_ADDRESS (using):", CONTRACT_ADDRESS);
+    log.warn("Using fallback?:", isUsingFallback);
+    log.line();
   }, []);
 
   const connectWallet = async () => {
     if (typeof window.ethereum === "undefined") {
-      warn("Please install MetaMask");
+      log.warn("Please install MetaMask");
       return;
     }
 
@@ -67,20 +67,29 @@ export default function Home() {
         method: "eth_requestAccounts",
       });
       setWalletAddress(accounts[0]);
-      log("✔ Wallet connected:", accounts[0]);
+
+      log.section("Wallet");
+      log.ok("Wallet connected:", accounts[0]);
+
+      const provider = new ethers.providers.Web3Provider(window.ethereum);
+      const network = await provider.getNetwork();
+      log.ok("Chain ID (hex):", "0x" + network.chainId.toString(16));
+      log.line();
+
     } catch (err) {
-      error("❌ Failed to connect wallet:", err);
+      log.err("Failed to connect wallet:", err);
     }
   };
 
   const fetchTokenInfo = async () => {
     if (!walletAddress) return;
     if (!ethers.utils.isAddress(walletAddress)) {
-      error("❌ Invalid wallet address:", walletAddress);
+      log.err("Invalid wallet address:", walletAddress);
       return;
     }
 
     setLoading(true);
+
     try {
       const provider = new ethers.providers.Web3Provider(window.ethereum);
       const contract = new ethers.Contract(CONTRACT_ADDRESS, ERC20_ABI, provider);
@@ -102,13 +111,22 @@ export default function Home() {
       setBalance(formattedBalance);
       setTotalSupply(formattedSupply);
 
-      log("✔ Token Name:", name);
-      log("✔ Token Symbol:", symbol);
-      log("✔ Balance:", formattedBalance);
-      log("✔ Total Supply:", formattedSupply);
+      log.section("Contract Info");
+      log.ok("Token Name:", name);
+      log.ok("Token Symbol:", symbol);
+      log.ok("Decimals:", decimals);
+      log.ok("Total Supply:", formattedSupply);
+      log.line();
+
+      log.section("Balance Info");
+      log.ok("Wallet Address:", walletAddress);
+      log.ok("Balance:", formattedBalance);
+      log.line();
+
     } catch (err) {
-      error("❌ Error reading token info:", err);
+      log.err("Error reading token info:", err);
     }
+
     setLoading(false);
   };
 
