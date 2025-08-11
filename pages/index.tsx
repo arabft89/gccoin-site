@@ -5,16 +5,29 @@ import { log, warn, error } from "../lib/logger";
 // Sepolia chain id in hex (MetaMask format)
 const SEPOLIA_CHAIN_ID = "0xaa36a7";
 
-// Prefer ENV var so we don’t hardcode in code
-const ENV_ADDRESS: string = process.env.NEXT_PUBLIC_CONTRACT_ADDRESS?.trim() || "";
+// Get from environment variables (always as a string)
+const ENV_ADDRESS: string = (process.env.NEXT_PUBLIC_CONTRACT_ADDRESS || "").trim();
+
+// Fallback contract address
 const FALLBACK_ADDRESS = "0xED298062aeF2A0c1459E926f7f40dB7b5e265780";
 
+// Decide which contract address to use
 const CONTRACT_ADDRESS =
   ENV_ADDRESS && ethers.utils.isAddress(ENV_ADDRESS)
     ? ENV_ADDRESS
     : FALLBACK_ADDRESS;
 
+// For debugging — check if fallback is being used
 const isUsingFallback = CONTRACT_ADDRESS === FALLBACK_ADDRESS;
+
+// Optional debug logging
+console.log("==== Contract Address Debug ====");
+console.log("ENV_ADDRESS (from Vercel):", ENV_ADDRESS);
+console.log("Is ENV_ADDRESS valid?:", ethers.utils.isAddress(ENV_ADDRESS));
+console.log("FALLBACK_ADDRESS:", FALLBACK_ADDRESS);
+console.log("CONTRACT_ADDRESS (using):", CONTRACT_ADDRESS);
+console.log("Using fallback?:", isUsingFallback);
+console.log("================================");
 
 const ERC20_ABI = [
   "function name() view returns (string)",
