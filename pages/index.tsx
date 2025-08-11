@@ -4,16 +4,20 @@ import { ethers } from "ethers";
 // --- Config ---
 const SEPOLIA_CHAIN_ID = "0xaa36a7"; // MetaMask hex
 
-// Only use the env var (no fallback)
-const ENV_ADDRESS = process.env.NEXT_PUBLIC_CONTRACT_ADDRESS?.trim();
+// Always pull from ENV var
+const ENV_ADDRESS: string = (process.env.NEXT_PUBLIC_CONTRACT_ADDRESS ?? "").trim();
 
-if (!ENV_ADDRESS || !ethers.utils.isAddress(ENV_ADDRESS)) {
-  throw new Error(
-    "Missing or invalid NEXT_PUBLIC_CONTRACT_ADDRESS. Set it in Vercel > Settings > Environment Variables."
-  );
-}
+// Safety fallback (only used if env var missing/invalid)
+const FALLBACK_ADDRESS = "0xED298062aeF2A0c1459E926f740dB7b5e265780";
 
-const CONTRACT_ADDRESS = ENV_ADDRESS;
+// Validate once
+const isEnvValid = ethers.utils.isAddress(ENV_ADDRESS);
+
+// Final contract address
+const CONTRACT_ADDRESS = isEnvValid ? ENV_ADDRESS : FALLBACK_ADDRESS;
+
+// Fallback flag
+const isUsingFallback = !isEnvValid;
 
 // Minimal ERC-20 ABI
 const ERC20_ABI = [
@@ -31,160 +35,114 @@ export default function Home() {
   const [balance, setBalance] = useState("");
   const [totalSupply, setTotalSupply] = useState("");
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string>("");
+  const [error, setError] = useState("");
 
-  const log = (...args: any[]) => {
-    if (process.env.NODE_ENV !== "production") console.log(...args);
-  };
+  // Debug logs
+  useEffect(() => {
+    console.log("==== Contract Address Debug ====");
+    console.log("ENV_ADDRESS (from Vercel):", ENV_ADDRESS);
+    console.log("Is ENV_ADDRESS valid?:", isEnvValid);
+    console.log("FALLBACK_ADDRESS:", FALLBACK_ADDRESS);
+    console.log("CONTRACT_ADDRESS (using):", CONTRACT_ADDRESS);
+    console.log("Using fallback?:", isUsingFallback);
+    console.log("===============================");
+  }, []);
 
   const connectWallet = async () => {
-    setError("");
-    if (typeof window === "undefined" || !window.ethereum) {
-      setError("Please install MetaMask.");
-      return;
-    }
-    try {
-      const accounts: string[] = await window.ethereum.request({
-        method: "eth_requestAccounts",
-      });
-      setWalletAddress(accounts[0]);
-
-      const chainId: string = await window.ethereum.request({
-        method: "eth_chainId",
-      });
-      if (chainId !== SEPOLIA_CHAIN_ID) {
-        setError("Please switch MetaMask to the Sepolia network.");
+    if (typeof window.ethereum !== "undefined") {
+      try {
+        const accounts = await window.ethereum.request({
+          method: "eth_requestAccounts",
+        });
+        setWalletAddress(accounts[0]);
+        console.log("✅ Wallet connected:", accounts[0]);
+      } catch (err) {
+        alert("Failed to connect wallet.");
+        console.error(err);
       }
-
-      log("✅ Wallet connected:", accounts[0], "Chain:", chainId);
-    } catch (err: any) {
-      setError(err?.message || "Failed to connect wallet.");
+    } else {
+      alert("Please install MetaMask");
     }
   };
 
   const fetchTokenInfo = async () => {
-    setError("");
     if (!walletAddress) return;
 
-    if (!CONTRACT_ADDRESS) {
-      setError(
-        "Contract address is missing or invalid. Set NEXT_PUBLIC_CONTRACT_ADDRESS in Vercel."
-      );
-      return;
-    }
-
-    if (!ethers.utils.isAddress(walletAddress)) {
-      setError("Wallet address is not valid.");
-      return;
-    }
-
-    if (typeof window === "undefined" || !window.ethereum) {
-      setError("MetaMask not found.");
-      return;
-    }
-
     setLoading(true);
+
     try {
       const provider = new ethers.providers.Web3Provider(window.ethereum);
       const contract = new ethers.Contract(CONTRACT_ADDRESS, ERC20_ABI, provider);
 
-      const [name, symbol, rawBalance, decimals, rawSupply] = await Promise.all([
-        contract.name(),
-        contract.symbol(),
-        contract.balanceOf(walletAddress),
-        contract.decimals(),
-        contract.totalSupply(),
-      ]);
+      const name = await contract.name();
+      const symbol = await contract.symbol();
+      const rawBalance = await contract.balanceOf(walletAddress);
+      const decimals = await contract.decimals();
+      const rawTotalSupply = await contract.totalSupply();
 
       const formattedBalance = ethers.utils.formatUnits(rawBalance, decimals);
-      const formattedSupply = ethers.utils.formatUnits(rawSupply, decimals);
+      const formattedSupply = ethers.utils.formatUnits(rawTotalSupply, decimals);
 
       setTokenName(name);
       setTokenSymbol(symbol);
       setBalance(formattedBalance);
       setTotalSupply(formattedSupply);
 
-      log("Token:", { name, symbol, formattedBalance, formattedSupply });
-    } catch (err: any) {
-      setError(err?.reason || err?.message || "Error reading token info.");
-    } finally {
-      setLoading(false);
+      console.log("✅ Token Name:", name);
+      console.log("✅ Token Symbol:", symbol);
+      console.log("✅ Balance:", formattedBalance);
+      console.log("✅ Total Supply:", formattedSupply);
+    } catch (err) {
+      console.error("❌ Error reading token info:", err);
+      setError("Failed to fetch token data. See console for details.");
     }
+
+    setLoading(false);
   };
 
- useEffect(() => {
-  // Build-time logs (env var)
-  console.log("==== Runtime Contract Address Check ====");
-  console.log("ENV_ADDRESS (from Vercel):", ENV_ADDRESS);
-  console.log("Is ENV_ADDRESS valid?:", ethers.utils.isAddress(ENV_ADDRESS));
-
-  // Client/runtime logs (wallet + chain)
-  const logRuntime = async () => {
-    if (typeof window === "undefined") return;
-
-    // Show current chain
-    const chainIdHex = (await window.ethereum?.request?.({ method: "eth_chainId" })) as string | undefined;
-    console.log("Chain ID:", chainIdHex, "(expect 0xaa36a7 for Sepolia)");
-
-    // If you already store walletAddress in state, show the value & validity
+  useEffect(() => {
     if (walletAddress) {
-      console.log("Wallet Address (value):", walletAddress);
-      console.log("Wallet Address (is valid):", ethers.utils.isAddress(walletAddress));
+      fetchTokenInfo();
     }
-
-    // Make it crystal clear what contract address is used at runtime
-    console.log("Using CONTRACT_ADDRESS:", CONTRACT_ADDRESS);
-    console.log("========================================");
-  };
-
-  logRuntime();
-  // Re-run when wallet changes so you see validity as you connect
-}, [walletAddress]);
+  }, [walletAddress]);
 
   return (
     <div style={{ textAlign: "center", marginTop: "5rem" }}>
       <h1>GCCoin dApp</h1>
 
+      {isUsingFallback && (
+        <p
+          style={{
+            color: "orange",
+            backgroundColor: "#fff8e1",
+            padding: "10px",
+            borderRadius: "6px",
+            maxWidth: "500px",
+            margin: "10px auto",
+          }}
+        >
+          ⚠️ Using fallback contract address. Set{" "}
+          <code>NEXT_PUBLIC_CONTRACT_ADDRESS</code> in Vercel to remove this warning.
+        </p>
+      )}
+
       {!walletAddress ? (
         <button onClick={connectWallet}>Connect Wallet</button>
       ) : (
         <div>
-          <p>
-            <strong>Connected:</strong> {walletAddress}
-          </p>
-          <p>
-            <strong>Token:</strong> {tokenName || "N/A"} ({tokenSymbol || "--"})
-          </p>
-          <p>
-            <strong>Your Balance:</strong> {balance || "N/A"}
-          </p>
-          <p>
-            <strong>Total Supply:</strong> {totalSupply || "N/A"}
-          </p>
-
-          <button
-            onClick={fetchTokenInfo}
-            disabled={loading}
-            style={{ marginTop: "1rem" }}
-          >
-            {loading ? "Loading..." : "Refresh"}
-          </button>
-
-          {error && (
-            <p
-              style={{
-                color: "crimson",
-                whiteSpace: "pre-wrap",
-                marginTop: "1rem",
-              }}
-            >
-              <strong>Error:</strong> {error}
-            </p>
-          )}
+          <p><strong>Connected:</strong> {walletAddress}</p>
+          <p><strong>Token:</strong> {tokenName || "N/A"} ({tokenSymbol || "--"})</p>
+          <p><strong>Your Balance:</strong> {balance || "N/A"}</p>
+          <p><strong>Total Supply:</strong> {totalSupply || "N/A"}</p>
+          {loading && <p style={{ color: "gray" }}>Fetching token info...</p>}
         </div>
+      )}
+
+      {error && (
+        <p style={{ color: "red", marginTop: "10px" }}>
+          <strong>{error}</strong>
+        </p>
       )}
     </div>
   );
 }
-
-
